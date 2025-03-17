@@ -13,7 +13,8 @@ from main import (
     extract_qa_pairs, 
     build_embedding_index, 
     semantic_search, 
-    generate_answer_with_context
+    generate_answer_with_context,
+    extract_additional_statements
 )
 from sentence_transformers import SentenceTransformer
 
@@ -57,11 +58,15 @@ async def startup_event():
     
     qa_pairs = extract_qa_pairs(messages, answerer=target_answerer)
     print(f"Extracted {len(qa_pairs)} Q&A pairs.")
+
+    # Or, if you prefer only additional statements not already in Q/A pairs:
+    additional_statements = extract_additional_statements(messages, answerer=target_answerer, qa_pairs=qa_pairs)
+    print(f"Additional standalone statements by {target_answerer}: {len(additional_statements)}")
     
     # Initialize the semantic model
     model = SentenceTransformer('all-MiniLM-L6-v2')
     
-    texts, embeddings = build_embedding_index(qa_pairs, model)
+    texts, embeddings = build_embedding_index(qa_pairs, additional_statements, model)
     print("Built embedding index for Q&A pairs.")
 
 @app.get("/", response_class=HTMLResponse)

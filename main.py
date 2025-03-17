@@ -61,7 +61,7 @@ def parse_chat(chat_file):
             print("Could not parse chunk:", chunk)
     return messages
 
-def extract_qa_pairs(messages, answerer, time_threshold=300):
+def extract_qa_pairs(messages, answerer, time_threshold=1800):
     """
     Extracts Q&A pairs from messages.
     
@@ -86,12 +86,30 @@ def extract_qa_pairs(messages, answerer, time_threshold=300):
                 qa_pairs.append((question, answer))
     return qa_pairs
 
-def build_embedding_index(qa_pairs, model):
+def build_embedding_index(qa_pairs, additional_statements, model):
     """
-    Builds an embedding index for the Q&A pairs.
-    Each pair is represented by concatenating question and answer text.
+    Builds an embedding index using Q/A pairs and additional target answerer statements.
+    
+    Each Q/A pair is represented as:
+        "Q: {question text} A: {answer text}"
+    
+    Each standalone additional statement is simply its message text.
+    
+    Returns:
+        texts: list of context strings.
+        embeddings: Tensor of corresponding embeddings.
     """
-    texts = [q['message'] + " " + a['message'] for q, a in qa_pairs]
+    texts = []
+    # Create context strings for Q/A pairs.
+    for question, answer in qa_pairs:
+        context = f"Q: {question['message']} A: {answer['message']}"
+        texts.append(context)
+    
+    # Append standalone additional statements.
+    for stmt in additional_statements:
+        texts.append(stmt['message'])
+    
+    # Generate embeddings for all contexts.
     embeddings = model.encode(texts, convert_to_tensor=True)
     return texts, embeddings
 
@@ -134,6 +152,22 @@ Answer:"""
     else:
         return f"Retrieved context:\n{context_str}"
 
+def extract_additional_statements(messages, answerer, qa_pairs):
+    """
+    Extracts additional statements from the target answerer that are not part
+    of the existing Q/A pairs.
+    
+    It assumes that the answer message in each Q/A pair is unique based on its timestamp.
+    """
+    # Gather timestamps (or any unique identifiers) from the Q/A pair answers.
+    used_timestamps = {pair[1]['timestamp'] for pair in qa_pairs if pair[1]['timestamp'] is not None}
+    
+    additional = [
+        msg for msg in messages
+        if msg['sender'].strip() == answerer and msg['timestamp'] not in used_timestamps
+    ]
+    return additional
+
 def main():
     # Specify the path to your WhatsApp chat export file
     chat_file = "_chat.txt"
@@ -146,11 +180,16 @@ def main():
     target_answerer = "R Babu"  # Adjust to match the actual sender name in your chat
     qa_pairs = extract_qa_pairs(messages, answerer=target_answerer)
     print(f"Extracted {len(qa_pairs)} Q&A pairs.")
+
+    # Or, if you prefer only additional statements not already in Q/A pairs:
+    additional_statements = extract_additional_statements(messages, answerer=target_answerer, qa_pairs=qa_pairs)
+    print(f"Additional standalone statements by {target_answerer}: {len(additional_statements)}")
     
     # Initialize the semantic model (requires Sentence Transformers)
     model = SentenceTransformer('all-MiniLM-L6-v2')
     
-    texts, embeddings = build_embedding_index(qa_pairs, model)
+    context_messages = [pair[1] for pair in qa_pairs] + additional_statements
+    texts, embeddings = build_embedding_index(context_messages, model)
     print("Built embedding index for Q&A pairs.")
     
     # Accept user query
