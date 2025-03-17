@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Parser UI</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <style>
+        .ripple {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-bar">
+        <div class="container">
+            <h1 class="app-title">Chat Parser UI</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card search-card">
+            <h2>Ask a Question</h2>
+            <p>Enter your question to search through the chat history and find relevant answers.</p>
+            
+            <form id="queryForm">
+                <div class="form-group">
+                    <label for="queryInput" class="form-label">Your Question</label>
+                    <input type="text" id="queryInput" class="form-control" placeholder="e.g., How does the sugar crystallization process work?" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="topKInput" class="form-label">Number of Results</label>
+                    <input type="number" id="topKInput" class="form-control" min="1" max="10" value="3">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">search</i>
+                    Search
+                </button>
+            </form>
+        </div>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Searching for relevant information...</p>
+        </div>
+        
+        <div id="resultsContainer" class="results-container hidden">
+            <div class="card result-card">
+                <h2>Search Results</h2>
+                
+                <h3>Relevant Context</h3>
+                <div id="contextsList"></div>
+                
+                <div id="answerContainer" class="answer-container">
+                    <h3 class="answer-title">Answer</h3>
+                    <div id="answerText"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="{{ url_for('static', path='/script.js') }}"></script>
+</body>
+</html> 
